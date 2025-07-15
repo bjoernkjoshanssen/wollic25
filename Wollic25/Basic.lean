@@ -241,12 +241,12 @@ def principalEquiv {A : Type*} (x y : A) (hxy : x ≠ y) :
             | inl h => subst h;tauto
             | inr h => right;rw [← h];rw [Set.pair_eq_pair_iff];simp}
 
-/-- An interval `[x,y]` is *strong* if its elements `u` agree on
+/-- An interval `[x,y]` is *indiscernible* if its elements `u` agree on
 whether they are above or below a given element `z ∉ [x,y]`.
 The equivalence relation formed by collapsing such an interval
 preserves `∨`.
 -/
-theorem preserve_sup_of_strong {A : Type*} (l : Lattice A) (x y : A)
+theorem preserve_sup_of_indiscernible {A : Type*} (l : Lattice A) (x y : A)
   (hxy' :
     ∀ z ∉ Set.Icc x y,
       ∀ w₀ ∈ Set.Icc x y,
@@ -810,8 +810,8 @@ lemma N₅_congr_inf (x₀ x₁ y₀ y₁ : Fin 5) :
                 subst h
                 decide
 
-/-- The interval `[2,4]` in `N₅` is strong. -/
-lemma N₅strongInterval (z : Fin 5) :
+/-- The interval `[2,4]` in `N₅` is indiscernible. -/
+lemma N₅indiscernibleInterval (z : Fin 5) :
   z ∉ {u | 2 ∣ u.1 ∧ u.1 ∣ 4} →
     ∀ w₀ ∈ {u : Fin 5 | 2 ∣ u.1 ∧ u.1 ∣ 4},
     ∀ w₁ ∈ {u : Fin 5 | 2 ∣ u.1 ∧ u.1 ∣ 4},
@@ -832,7 +832,7 @@ lemma N₅strongInterval (z : Fin 5) :
 open Classical in
 /-- The lattice `N₅` is not simple. -/
 theorem not_simple_N₅ : ¬ Simple N₅ := by
-  have hio := @preserve_sup_of_strong (Fin 5) N₅ 2 4
+  have hio := @preserve_sup_of_indiscernible (Fin 5) N₅ 2 4
   unfold Simple
   push_neg
   use (fun a b ↦ a = b ∨ {a, b} ⊆ {x | 2 ∣ x.1 ∧ x.1 ∣ 4})
@@ -842,7 +842,7 @@ theorem not_simple_N₅ : ¬ Simple N₅ := by
           ∀ w₀ ∈ {u : Fin 5 | 2 ∣ u.1 ∧ u.1 ∣ 4},
           ∀ w₁ ∈ {u : Fin 5 | 2 ∣ u.1 ∧ u.1 ∣ 4},
           (w₀.1 ∣ z.1 ↔ w₁.1 ∣ z.1) ∧ (z.1 ∣ w₀.1 ↔ z.1 ∣ w₁.1)
-      apply N₅strongInterval)
+      apply N₅indiscernibleInterval)
 
     constructor
     · have := principalEquiv (2:Fin 5) 4 (by simp)
