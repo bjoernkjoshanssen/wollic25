@@ -478,13 +478,9 @@ lemma N₅_congr_sup (x₀ x₁ y₀ y₁ : Fin 5) :
                 | inl h =>
                     subst h
                     fin_cases x₀
-                    · simp at H ⊢; decide
-                    · simp at H ⊢
-                      rw [N₅helper, Set.pair_subset_iff]
+                    all_goals (simp at H ⊢; try decide)
+                    · rw [N₅helper, Set.pair_subset_iff]
                       decide
-                    · simp at H ⊢
-                    · simp at H ⊢; decide
-                    · simp at H ⊢
                 | inr h =>
                     subst h
                     left
@@ -537,29 +533,13 @@ lemma N₅_congr_sup (x₀ x₁ y₀ y₁ : Fin 5) :
             · left
               change N₅.sup x₀ y₀ = N₅.sup x₁ y₀
               have g₀: N₅.sup x₀ y₀ = 0 := by
-                fin_cases y₀
-                · simp at H ⊢
-                  fin_cases x₀ <;> decide
-                · simp at H ⊢
-                · simp at H ⊢
-                · simp at H ⊢
-                  have h₁ := h.1
-                  cases h₁ with
-                  | inl h => subst h;decide
-                  | inr h => simp at h;subst h;decide
-                · simp at H ⊢
+                fin_cases y₀; all_goals simp at H ⊢
+                · fin_cases x₀ <;> decide
+                · rcases h.1 with (h | h) <;> (subst h;decide)
               have g₁: N₅.sup x₁ y₀ = 0 := by
-                fin_cases y₀
-                · simp at H ⊢
-                  fin_cases x₁ <;> decide
-                · simp at H ⊢
-                · simp at H ⊢
-                · simp at H ⊢
-                  have h₁ := h.2
-                  cases h₁ with
-                  | inl h => subst h;decide
-                  | inr h => simp at h;subst h;decide
-                · simp at H ⊢
+                fin_cases y₀; all_goals simp at H ⊢
+                · fin_cases x₁ <;> decide
+                · rcases h.2 with (h | h) <;> (subst h;decide)
               exact g₀.trans g₁.symm
         | inr h' =>
           right
@@ -596,91 +576,41 @@ lemma N₅_congr_inf (x₀ x₁ y₀ y₁ : Fin 5) :
             by_cases H : x₀ ∈ ({2, 4} : Set (Fin 5))
             · right
               rw [N₅helper]
-
               rw [Set.pair_subset_iff] at h ⊢
               constructor
-              · cases H with
-              | inl h' =>
-                subst h'
-                have := h.1
-                cases this with
-                | inl h => subst h;simp;decide
-                | inr h => simp at h;subst h;simp;decide
-              | inr h =>
-                simp at h
+              · rcases H with (h | h) <;> (
                 subst h
-                have := h.1
-                cases this with
-                | inl h => subst h;simp;decide
-                | inr h => subst h;simp;decide
-              · cases H with
-              | inl h' =>
-                subst h'
-                have := h.2
-                cases this with
-                | inl h => subst h;simp;decide
-                | inr h => simp at h;subst h;simp;decide
-              | inr h =>
-                simp at h
+                rcases h.1 with (h | h) <;> (subst h;simp;decide))
+              · rcases H with (h | h) <;> (
                 subst h
-                have := h.2
-                cases this with
-                | inl h => subst h;simp;decide
-                | inr h => subst h;simp;decide
+                rcases h.2 with (h | h) <;> (subst h;simp;decide))
             · rw [Set.pair_subset_iff] at h
               simp at h H
-              have h₁ := h.1
-              have h₂ := h.2
-              cases h₁ with
+              cases h.1 with
               | inl h =>
                 subst h
-                cases h₂ with
+                cases h.2 with
                 | inl h =>
                     subst h
                     left
                     rfl
                 | inr h =>
                     subst h
-                    fin_cases x₀
-                    · simp at H ⊢
-                      right
-                      rw [N₅helper]
-                      rw [Set.pair_subset_iff]
-                      simp
+                    fin_cases x₀; all_goals (simp at H ⊢; try decide)
+                    · rw [N₅helper, Set.pair_subset_iff]
                       decide
-                    · simp at H ⊢
-                      left
-                      change N₅.inf 1 2 = N₅.inf 1 4
-                      decide
-                    · simp at H ⊢
-                    · simp at H ⊢
-                      left
-                      decide
-                    · simp at H ⊢
               | inr h =>
                 subst h
-                cases h₂ with
+                cases h.2 with
                 | inl h =>
                     subst h
-                    fin_cases x₀
-                    · simp at H ⊢
-                      right
-                      rw [N₅helper]
-                      rw [Set.pair_subset_iff]
-                      simp
+                    fin_cases x₀; all_goals (simp at H ⊢; try decide)
+                    · rw [N₅helper, Set.pair_subset_iff]
                       decide
-                    · simp at H ⊢
-                      decide
-                    · simp at H ⊢
-                    · simp at H ⊢
-                      left
-                      decide
-                    · simp at H ⊢
                 | inr h =>
                     subst h
                     left
                     rfl
-
       | inr h =>
         rw [Set.pair_subset_iff] at h
         cases h₁ with
@@ -694,121 +624,47 @@ lemma N₅_congr_inf (x₀ x₁ y₀ y₁ : Fin 5) :
                 constructor
                 · change N₅.le 2 (N₅.inf x₀ y₀)
                   apply N₅.le_inf
-                  · have h₁ := h.1
-                    cases h₁ with
-                    | inl h => subst h;change 2 ∣ 2;simp
-                    | inr h => subst h;change 2 ∣ 4;simp
+                  · rcases h.1 with (h | h) <;> (subst h;change 2 ∣ _;simp)
                   change 2 ∣ y₀.1
                   exact H
                 · change N₅.le (N₅.inf x₀ y₀) 4
                   apply N₅.le_trans
                   · change N₅.le _ x₀
-                    have h₁ := h.1
-                    cases h₁ with
-                    | inl h => subst h;apply N₅.inf_le_left
-                    | inr h => subst h;apply N₅.inf_le_left
-                  have := h.1
-                  cases this with
-                  | inl h => subst h;change 2 ∣ 4;simp
-                  | inr h => subst h;change 4 ∣ 4;simp
+                    rcases h.1 with (h | h) <;> (subst h;apply N₅.inf_le_left)
+                  · change N₅.le _ _
+                    rcases h.1 with (h | h) <;> (subst h;change _ ∣ 4;simp)
               · simp
                 constructor
                 · change N₅.le 2 _
                   apply N₅.le_inf
-                  · change N₅.le 2 x₁
-                    have h₁ := h.2
-                    cases h₁ with
-                    | inl h => subst h;change 2 ∣ 2;simp
-                    | inr h => subst h;change 2 ∣ 4;simp
+                  · rcases h.2 with (h | h) <;> (subst h;change 2 ∣ _;simp)
                   exact H
                 · change N₅.le (N₅.inf x₁ y₀) 4
                   apply N₅.le_trans
-                  · change N₅.le _ x₁
-                    apply N₅.inf_le_left
-                  · have := h.2
-                    cases this with
-                    | inl h => subst h;change 2 ∣ 4;decide
-                    | inr h => subst h;change 4 ∣ 4;decide
+                  · apply N₅.inf_le_left
+                  · rcases h.2 with (h | h) <;> (subst h;change _ ∣ 4;decide)
             · left
               change N₅.inf x₀ y₀ = N₅.inf x₁ y₀
               have g₀: N₅.inf x₀ y₀ = 1 := by
-                fin_cases y₀
-                · simp at H ⊢
-                · simp at H ⊢
-                  fin_cases x₀ <;> decide
-                · simp at H ⊢
-                · simp at H ⊢
-                  have h₁ := h.1
-                  cases h₁ with
-                  | inl h => subst h;decide
-                  | inr h => simp at h;subst h;decide
-                · simp at H ⊢
+                fin_cases y₀; all_goals simp at H ⊢
+                · fin_cases x₀ <;> decide
+                · rcases h.1 with (h | h) <;> (subst h;decide)
               have g₁: N₅.inf x₁ y₀ = 1 := by
-                fin_cases y₀
-                · simp at H ⊢
-                · simp at H ⊢
-                  fin_cases x₁ <;> decide
-                · simp at H ⊢
-                · simp at H ⊢
-                  have h₁ := h.2
-                  cases h₁ with
-                  | inl h => subst h;decide
-                  | inr h => simp at h;subst h;decide
-                · simp at H ⊢
+                fin_cases y₀; all_goals simp at H ⊢
+                · fin_cases x₁ <;> decide
+                · rcases h.2 with (h | h) <;> (subst h;decide)
               exact g₀.trans g₁.symm
         | inr h' =>
           right
           rw [Set.pair_subset_iff] at h' ⊢
           rw [N₅helper]
           constructor
-          -- done above?
-          · simp
-            have := h.1
-            cases this with
-            | inl h =>
+          · rcases h.1 with (h | h) <;> (
               subst h
-              have := h'.1
-              cases this with
-              | inl h =>
-                  subst h
-                  decide
-              | inr h =>
-                  subst h
-                  decide
-            | inr h =>
+              rcases h'.1 with (h | h) <;> (subst h; decide))
+          · rcases h.2 with (h | h) <;> (
               subst h
-              have := h'.1
-              cases this with
-              | inl h =>
-                  subst h
-                  decide
-              | inr h =>
-                  subst h
-                  decide
-
-          simp
-          have := h.2
-          cases this with
-          | inl h =>
-            subst h
-            have := h'.2
-            cases this with
-            | inl h =>
-                subst h
-                decide
-            | inr h =>
-                subst h
-                decide
-          | inr h =>
-            subst h
-            have := h'.2
-            cases this with
-            | inl h =>
-                subst h
-                decide
-            | inr h =>
-                subst h
-                decide
+              rcases h'.2 with (h | h) <;> (subst h; decide))
 
 /-- The interval `[2,4]` in `N₅` is indiscernible. -/
 lemma N₅indiscernibleInterval (z : Fin 5) :
@@ -820,22 +676,19 @@ lemma N₅indiscernibleInterval (z : Fin 5) :
     intro hz w₀ hw₀ w₁ hw₁
     simp at hz hw₀ hw₁
     fin_cases z
-    · simp at hz ⊢; omega
-    · simp at hz ⊢; omega
-    · simp at hz ⊢
-    · simp at hz ⊢
-      rcases hw₀ with (h | h) <;> (
-        subst h
-        simp
-        rcases hw₁ with (h | h) <;> (subst h; simp))
-    · simp at hz ⊢
+    all_goals (simp at hz ⊢)
+    all_goals (try omega)
+    rcases hw₀ with (h | h) <;> (
+      subst h
+      simp
+      rcases hw₁ with (h | h) <;> (subst h; simp))
 open Classical in
 /-- The lattice `N₅` is not simple. -/
 theorem not_simple_N₅ : ¬ Simple N₅ := by
   have hio := @preserve_sup_of_indiscernible (Fin 5) N₅ 2 4
   unfold Simple
   push_neg
-  use (fun a b ↦ a = b ∨ {a, b} ⊆ {x | 2 ∣ x.1 ∧ x.1 ∣ 4})
+  use fun a b ↦ a = b ∨ {a, b} ⊆ {x | 2 ∣ x.1 ∧ x.1 ∣ 4}
   constructor
   · specialize hio (by
       change  ∀ z ∉ {u : Fin 5 | 2 ∣ u.1 ∧ u.1 ∣ 4},
@@ -852,9 +705,7 @@ theorem not_simple_N₅ : ¬ Simple N₅ := by
       rw [Set.pair_subset_iff, Set.pair_eq_pair_iff]
       simp
       constructor <;> aesop
-    · constructor
-      · apply N₅_congr_sup
-      · apply N₅_congr_inf
+    · exact ⟨N₅_congr_sup, N₅_congr_inf⟩
 
   constructor
   · intro hc
@@ -1050,15 +901,11 @@ lemma of₃ (R : Fin 5 → Fin 5 → Prop) (hR₀ : congruence N₅ R)
   (H : ∃ i, (i ≠ 3) ∧ R 3 i) : R 2 4 := by
       obtain ⟨i,hi⟩ := H
       fin_cases i
-      · simp at hi
-        apply of₃₀ hR₀ hi
-      · simp at hi
-        apply of₃₁ hR₀ hi
-      · simp at hi
-        apply of₃₂ hR₀ hi
-      · simp at hi
-      · simp at hi
-        apply of₃₄ hR₀ hi
+      all_goals (simp at hi)
+      · apply of₃₀ hR₀ hi
+      · apply of₃₁ hR₀ hi
+      · apply of₃₂ hR₀ hi
+      · apply of₃₄ hR₀ hi
 
 /-- The lattice `N₅` is subdirectly irreducible. -/
 theorem sdi_N₅ : SubdirectlyIrreducible N₅ := by
@@ -1076,61 +923,48 @@ theorem sdi_N₅ : SubdirectlyIrreducible N₅ := by
     · by_contra H'
       apply hR₁
       ext i j
-      fin_cases i
-      · simp
-        fin_cases j
-        · simp;tauto
-        · simp
-          contrapose! H'
+      fin_cases i; all_goals simp
+      · fin_cases j
+        all_goals (simp)
+        · tauto
+        · contrapose! H'
           apply ofIcc hR₀ (show 1 ∣ 2 by simp) (show 2 ∣ 4 by simp) (show 4 ∣ 0 by simp) (symm H')
-        · simp
-          contrapose! H'
+        · contrapose! H'
           apply ofIcc hR₀ (by change 2 ∣ 2;simp) ((by change 2 ∣ 4;simp))
             (by change 4 ∣ 0;simp) (symm H')
-        · simp
-          contrapose! H
+        · contrapose! H
           use 0
           simp
           apply symm H
-        · simp
-          contrapose! H'
+        · contrapose! H'
           apply of₄₀ hR₀
           apply symm H'
-      · simp
-        fin_cases j
-        · simp
-          contrapose! H'
+      · fin_cases j
+        all_goals simp
+        · contrapose! H'
           apply ofIcc hR₀ (by change 1 ∣ 2;simp) ((by change 2 ∣ 4;simp)) (by change 4 ∣ 0;simp) H'
-        · simp;tauto
-        · simp
-          contrapose! H'
+        · tauto
+        · contrapose! H'
           apply of₂₁ hR₀ <|symm H'
-        · simp
-          contrapose! H
+        · contrapose! H
           use 1
           simp
           apply symm H
-        · simp
-          contrapose! H'
+        · contrapose! H'
           apply ofIcc hR₀ (by change 1 ∣ 2;simp) ((by change 2 ∣ 4;simp)) (by change 4 ∣ 4;simp) H'
-      · simp
-        fin_cases j
-        · simp
-          contrapose! H'
+      · fin_cases j
+        all_goals simp
+        · contrapose! H'
           apply ofIcc hR₀ (by change 2 ∣ 2;simp) ((by change 2 ∣ 4;simp)) (by change 4 ∣ 0;simp) H'
-        · simp
-          contrapose! H'
+        · contrapose! H'
           apply of₂₁ hR₀ H'
-        · simp;tauto
-        · simp
-          contrapose! H
+        · tauto
+        · contrapose! H
           use 2
           simp
           apply symm H
-        · simp
-          exact H'
-      · simp
-        constructor
+        · exact H'
+      · constructor
         · intro h
           contrapose! H
           use j
@@ -1142,22 +976,17 @@ theorem sdi_N₅ : SubdirectlyIrreducible N₅ := by
           symm at h
           subst h
           tauto
-      · simp
-        fin_cases j
-        · simp
-          contrapose! H'
+      · fin_cases j; all_goals simp
+        · contrapose! H'
           apply of₄₀ hR₀ H'
-        · simp
-          contrapose! H'
+        · contrapose! H'
           apply ofIcc hR₀ (by change 1 ∣ 2;simp) ((by change 2 ∣ 4;simp))
             (by change 4 ∣ 4;simp) <|symm H'
-        · simp
-          contrapose! H'
+        · contrapose! H'
           apply symm H'
-        · simp
-          contrapose! H'
+        · contrapose! H'
           apply of₃₄ hR₀ <| symm H'
-        · simp;tauto
+        · tauto
 
 /-- There exists a lattice that is subdirectly irreducible
  but not simple, namely `N₅`. -/
@@ -1167,5 +996,4 @@ theorem exists_sdi_not_simple : ∃ l : Lattice (Fin 5),
   constructor
   · exact sdi_N₅
   · exact not_simple_N₅
-
 end UniversalAlgebra
