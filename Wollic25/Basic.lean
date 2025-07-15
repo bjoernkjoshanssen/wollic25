@@ -19,7 +19,6 @@ subdirectly irreducible but not simple.
 |  `2`
  \ /
   1
-
 -/
 
 section UniversalAlgebra
@@ -31,121 +30,80 @@ def congruence {L : Type*} (l : Lattice L) (R : L → L → Prop) : Prop :=
     (∀ x₀ x₁ y₀ y₁, R x₀ x₁ → R y₀ y₁ → R (l.sup x₀ y₀) (l.sup x₁ y₁)) ∧
     (∀ x₀ x₁ y₀ y₁, R x₀ x₁ → R y₀ y₁ → R (l.inf x₀ y₀) (l.inf x₁ y₁))
 
-/-- `N₅` is the 5-element nonmodular lattice.
- We realize it is `{0,1,...,4}` under divisibility `x ∣ y`.
--/
-noncomputable def N₅ : Lattice (Fin 5) := {
+theorem Fin.lcm.proof {n : ℕ} {a b : Fin n} (h : ¬a.1.lcm b.1 < n) : 0 < n := by
+    by_cases H : n = 0
+    · have := a.2
+      subst H
+      simp at this
+    · omega
+
+theorem Fin.gcd.proof {n : ℕ} {a b : Fin n} : a.1.gcd b.1 < n := by
+          by_cases H₀ : n = 0
+          · have := a.2
+            subst H₀
+            simp at this
+          · by_cases H₁ : n = 1
+            · subst H₁
+              rw [fin_one_eq_zero a, fin_one_eq_zero b]
+              decide
+            · by_cases H₂ : a.1 = 0
+              · rw [H₂]
+                simp
+              · have : a.1.gcd b.1 ≤ a.1 := by
+                  refine Nat.gcd_le_left ↑b ?_
+                  omega
+                omega
+
+/-- Fin.lcm on Fin n is 0 if Nat.lcm is not in Fin n. -/
+def Fin.lcm {n : ℕ} (a b : Fin n) : Fin n :=
+    dite (a.1.lcm b.1 < n) (fun h => ⟨a.1.lcm b.1, h⟩)
+                           (fun h => ⟨0, Fin.lcm.proof h⟩)
+
+/-- The gcd on ℕ works without modification on Fin n. -/
+def Fin.gcd {n : ℕ} (a b : Fin n) : Fin n := ⟨a.1.gcd b.1, Fin.gcd.proof⟩
+
+/-- Fin n as a partial divisor lattice. -/
+noncomputable def D (n : ℕ) : Lattice (Fin n) := {
     le := fun x y =>
         Dvd.dvd x.1 y.1 -- x.1 ∣ y.1
     lt := fun x y => Dvd.dvd x.1 y.1 ∧ ¬ Dvd.dvd y.1 x.1
-    le_refl := by
-        intro a
-        simp
-    le_antisymm := fun a b h₀ h₁ => by
-        refine Fin.eq_of_val_eq ?_
-        exact Nat.dvd_antisymm h₀ h₁
-    sup := fun a b => by
-        by_cases H₀ : a.1 = 0 ∨ b.1 = 0
-        · exact 0
-        · by_cases H : a.1 ∣ b.1 ∨ b.1 ∣ a.1
-          · exact ⟨Nat.max a.1 b.1, by
-                have ha := a.2
-                have hb := b.2
-                by_cases H : 0 < a.1
-                · exact max_lt ha hb
-                · have : a.1 = 0 := by linarith
-                  rw [this]
-                  simp⟩
-          · exact 0
+    le_refl := fun a => dvd_refl a.1
+    le_antisymm := fun a b h₀ h₁ => Fin.eq_of_val_eq <| Nat.dvd_antisymm h₀ h₁
+    sup := Fin.lcm
+    inf := Fin.gcd
     le_trans := fun a b c h₀ h₁ => Nat.dvd_trans h₀ h₁
     le_sup_left := fun a b => by
-        split_ifs with g₀ g₁ g₂
-        · exact Nat.dvd_of_mod_eq_zero rfl
-        · simp
-          have : a.1.max b.1 = a.1 ∨ a.1.max b.1 = b.1 := max_choice a.1 b.1
-          cases this with
-          | inl h₀ => rw [h₀]
-          | inr h₀ =>
-            cases g₁ with
-            | inl h₁ => rw [h₀];exact h₁
-            | inr h₁ =>
-                rw [h₀]
-                have : a.1 = b.1 := by
-                    apply le_antisymm
-                    · exact le_of_sup_eq h₀
-                    · exact Nat.le_of_dvd g₂ h₁
-                rw [this]
-        · simp_all
-        · exact Nat.dvd_of_mod_eq_zero rfl
+        unfold Fin.lcm
+        split_ifs with g₀
+        · exact Nat.dvd_lcm_left ↑a ↑b
+        · exact dvd_zero _
     le_sup_right := fun a b => by
-        split_ifs with g₀ g₁ g₂
-        · exact Nat.dvd_of_mod_eq_zero rfl
-        · simp
-          have : a.1.max b.1 = a.1 ∨ a.1.max b.1 = b.1 := max_choice a.1 b.1
-          cases this with
-          | inl h₀ =>
-            rw [h₀]
-            cases g₁ with
-            | inl h =>
-                have : a.1 = b.1 := by
-                    apply le_antisymm
-                    · have : b.1 ≠ 0 := by omega
-                      apply Nat.le_of_dvd
-                      omega
-                      exact h
-                    · exact sup_eq_left.mp h₀
-                rw [this]
-
-            | inr h => exact h
-          | inr h₀ =>
-            cases g₁ with
-            | inl h₁ => rw [h₀]
-            | inr h₁ =>
-                rw [h₀]
-        · simp_all
-        · exact Nat.dvd_of_mod_eq_zero rfl
+        unfold Fin.lcm
+        split_ifs with g₀
+        · exact Nat.dvd_lcm_right ↑a ↑b
+        · exact dvd_zero _
     sup_le := fun a b c h₀ h₁ => by
-        split_ifs with g₀ g₁ g₂
-        cases g₀ with
-        | inl h => rw [h] at h₀;simp at h₀ ⊢;exact h₀
-        | inr h => rw [h] at h₁;simp at h₁ ⊢;exact h₁
-
+        simp [Fin.lcm]
+        split_ifs with g₀
+        · simp;exact Nat.lcm_dvd h₀ h₁
         · simp
-          have : a.1.max b.1 = a.1 ∨ a.1.max b.1 = b.1 := max_choice a.1 b.1
-          cases this with
-          | inl h₀ =>
-            rw [h₀]
-            cases g₁ with
-            | inl h =>
-                have : a.1 = b.1 := by
-                    apply le_antisymm
-                    · have : b.1 ≠ 0 := by omega
-                      apply Nat.le_of_dvd
-                      omega
-                      exact h
-                    · exact sup_eq_left.mp h₀
-                rw [this]
-                exact h₁
-            | inr h => tauto
-          | inr h₀ =>
-            cases g₁ with
-            | inl h₁ => rw [h₀];tauto
-            | inr h₁ =>
-                rw [h₀];tauto
-        · simp_all
-        · fin_cases c <;> fin_cases a <;> fin_cases b <;> simp_all
-    inf := fun a b => ⟨Nat.gcd a.1 b.1, by
-        have ha := a.2
-        have hb := b.2
-        by_cases H : 0 < a.1
-        · have : a.1.gcd b.1 ≤ a.1 := Nat.gcd_le_left ↑b H
-          linarith
-        · have : a.1 = 0 := by linarith
-          rw [this]
-          simp⟩
-    inf_le_left := fun a b => Nat.gcd_dvd_left ↑a ↑b
-    inf_le_right := fun a b => Nat.gcd_dvd_right ↑a ↑b
-    le_inf := fun a b c h₀ h₁ => Nat.dvd_gcd h₀ h₁
+          have := Nat.lcm_dvd h₀ h₁
+          contrapose! g₀
+          calc _ ≤ c.1 := by
+                    obtain ⟨d,hd⟩ := this
+                    rw [hd]
+                    by_cases H : d = 0
+                    · subst H
+                      simp at hd
+                      tauto
+                    · have : a.1.lcm b.1 = (a.1.lcm b.1) * 1 := by simp
+                      nth_rw 1 [this]
+                      have : 1 ≤ d := by omega
+                      exact Nat.mul_le_mul_left (a.1.lcm ↑b) this
+               _ < _ := c.2
+    inf_le_left := fun a b => Nat.gcd_dvd_left a.1 b.1
+    inf_le_right := fun a b => Nat.gcd_dvd_right a.1 b.1
+    le_inf := fun _ _ _ => Nat.dvd_gcd
 }
 
 /-- A lattice `L` is *subdirectly irreducible* if it contains two elements
@@ -355,7 +313,7 @@ theorem preserve_sup_of_indiscernible {A : Type*} (l : Lattice A) (x y : A)
 
 
 /-- Simple implies subdirectly irreducible.
-(N₅ is an example of the failure of the converse.)
+((D 5) is an example of the failure of the converse.)
 M₃ is simple.
 -/
 theorem sdi_of_simple {A : Type*} (l : Lattice A) (h : Simple l) :
@@ -414,23 +372,15 @@ lemma N₅helper : {u : Fin 5 | 2 ∣ u.1 ∧ u.1 ∣ 4} = {2, 4} := by
           simp
     intro h
     cases h with
-    | inl h =>
-        subst h
-        change _ ∣ _ ∧ 2 ∣ _
-        omega
-    | inr h =>
-        subst h
-        change _ ∣ _ ∧ 4 ∣ _
-        omega
+    | inl h => subst h; change _ ∣ _ ∧ 2 ∣ _; omega
+    | inr h => subst h; change _ ∣ _ ∧ 4 ∣ _; omega
 
 open Classical in
-/-- The principal equivalence relation with block `{2,4}`
-preserves `∨` in `N₅`. -/
-lemma N₅_congr_sup (x₀ x₁ y₀ y₁ : Fin 5) :
+lemma D₅_congr_sup (x₀ x₁ y₀ y₁ : Fin 5) :
     (fun a b ↦ a = b ∨ {a, b} ⊆ {x | 2 ∣ x.1 ∧ x.1 ∣ 4}) x₀ x₁ →
     (fun a b ↦ a = b ∨ {a, b} ⊆ {x | 2 ∣ x.1 ∧ x.1 ∣ 4}) y₀ y₁ →
     (fun a b ↦ a = b ∨ {a, b} ⊆ {x | 2 ∣ x.1 ∧ x.1 ∣ 4})
-      (N₅.sup x₀ y₀) (N₅.sup x₁ y₁) := by
+      ((D 5).sup x₀ y₀) ((D 5).sup x₁ y₁) := by
       intro h₀ h₁
       rw [N₅helper] at h₀ h₁
       cases h₀ with
@@ -496,16 +446,16 @@ lemma N₅_congr_sup (x₀ x₁ y₀ y₁ : Fin 5) :
               constructor
               · simp
                 constructor
-                · change N₅.le 2 _
-                  apply N₅.le_trans
-                  · change N₅.le 2 x₀
+                · change (D 5).le 2 _
+                  apply (D 5).le_trans
+                  · change (D 5).le 2 x₀
                     have h₁ := h.1
                     cases h₁ with
                     | inl h => subst h;change 2 ∣ 2;simp
                     | inr h => subst h;change 2 ∣ 4;simp
-                  apply N₅.le_sup_left
-                · change N₅.le (N₅.sup x₀ y₀) 4
-                  apply N₅.sup_le
+                  apply (D 5).le_sup_left
+                · change (D 5).le ((D 5).sup x₀ y₀) 4
+                  apply (D 5).sup_le
                   · have h₁ := h.1
                     cases h₁ with
                     | inl h => subst h;change 2 ∣ 4;simp
@@ -514,16 +464,16 @@ lemma N₅_congr_sup (x₀ x₁ y₀ y₁ : Fin 5) :
                   exact H
               · simp
                 constructor
-                · change N₅.le 2 _
-                  apply N₅.le_trans
-                  · change N₅.le 2 x₁
+                · change (D 5).le 2 _
+                  apply (D 5).le_trans
+                  · change (D 5).le 2 x₁
                     have h₁ := h.2
                     cases h₁ with
                     | inl h => subst h;change 2 ∣ 2;simp
                     | inr h => subst h;change 2 ∣ 4;simp
-                  apply N₅.le_sup_left
-                · change N₅.le (N₅.sup x₁ y₀) 4
-                  apply N₅.sup_le
+                  apply (D 5).le_sup_left
+                · change (D 5).le ((D 5).sup x₁ y₀) 4
+                  apply (D 5).sup_le
                   · have h₁ := h.2
                     cases h₁ with
                     | inl h => subst h;change 2 ∣ 4;simp
@@ -531,12 +481,12 @@ lemma N₅_congr_sup (x₀ x₁ y₀ y₁ : Fin 5) :
                   change y₀.1 ∣ 4
                   exact H
             · left
-              change N₅.sup x₀ y₀ = N₅.sup x₁ y₀
-              have g₀: N₅.sup x₀ y₀ = 0 := by
+              change (D 5).sup x₀ y₀ = (D 5).sup x₁ y₀
+              have g₀: (D 5).sup x₀ y₀ = 0 := by
                 fin_cases y₀; all_goals simp at H ⊢
                 · fin_cases x₀ <;> decide
                 · rcases h.1 with (h | h) <;> (subst h;decide)
-              have g₁: N₅.sup x₁ y₀ = 0 := by
+              have g₁: (D 5).sup x₁ y₀ = 0 := by
                 fin_cases y₀; all_goals simp at H ⊢
                 · fin_cases x₁ <;> decide
                 · rcases h.2 with (h | h) <;> (subst h;decide)
@@ -554,14 +504,15 @@ lemma N₅_congr_sup (x₀ x₁ y₀ y₁ : Fin 5) :
             rcases h.2 with (h | h) <;> (
               subst h
               rcases h'.2 with (h | h) <;> (subst h; decide))
+
 open Classical in
 /-- The principal equivalence relation with block `{2,4}`
-preserves `∧` in `N₅`. -/
-lemma N₅_congr_inf (x₀ x₁ y₀ y₁ : Fin 5) :
+preserves `∧` in `(D 5)`. -/
+lemma D₅_congr_inf (x₀ x₁ y₀ y₁ : Fin 5) :
   (fun a b ↦ a = b ∨ {a, b} ⊆ {x | 2 ∣ x.1 ∧ x.1 ∣ 4}) x₀ x₁ →
     (fun a b ↦ a = b ∨ {a, b} ⊆ {x | 2 ∣ x.1 ∧ x.1 ∣ 4}) y₀ y₁ →
       (fun a b ↦ a = b ∨ {a, b} ⊆ {x | 2 ∣ x.1 ∧ x.1 ∣ 4})
-      (N₅.inf x₀ y₀) (N₅.inf x₁ y₁) := by
+      ((D 5).inf x₀ y₀) ((D 5).inf x₁ y₁) := by
       intro h₀ h₁
       rw [N₅helper] at h₀ h₁
       cases h₀ with
@@ -622,34 +573,34 @@ lemma N₅_congr_inf (x₀ x₁ y₀ y₁ : Fin 5) :
               constructor
               · simp
                 constructor
-                · change N₅.le 2 (N₅.inf x₀ y₀)
-                  apply N₅.le_inf
+                · change (D 5).le 2 ((D 5).inf x₀ y₀)
+                  apply (D 5).le_inf
                   · rcases h.1 with (h | h) <;> (subst h;change 2 ∣ _;simp)
                   change 2 ∣ y₀.1
                   exact H
-                · change N₅.le (N₅.inf x₀ y₀) 4
-                  apply N₅.le_trans
-                  · change N₅.le _ x₀
-                    rcases h.1 with (h | h) <;> (subst h;apply N₅.inf_le_left)
-                  · change N₅.le _ _
+                · change (D 5).le ((D 5).inf x₀ y₀) 4
+                  apply (D 5).le_trans
+                  · change (D 5).le _ x₀
+                    rcases h.1 with (h | h) <;> (subst h;apply (D 5).inf_le_left)
+                  · change (D 5).le _ _
                     rcases h.1 with (h | h) <;> (subst h;change _ ∣ 4;simp)
               · simp
                 constructor
-                · change N₅.le 2 _
-                  apply N₅.le_inf
+                · change (D 5).le 2 _
+                  apply (D 5).le_inf
                   · rcases h.2 with (h | h) <;> (subst h;change 2 ∣ _;simp)
                   exact H
-                · change N₅.le (N₅.inf x₁ y₀) 4
-                  apply N₅.le_trans
-                  · apply N₅.inf_le_left
+                · change (D 5).le ((D 5).inf x₁ y₀) 4
+                  apply (D 5).le_trans
+                  · apply (D 5).inf_le_left
                   · rcases h.2 with (h | h) <;> (subst h;change _ ∣ 4;decide)
             · left
-              change N₅.inf x₀ y₀ = N₅.inf x₁ y₀
-              have g₀: N₅.inf x₀ y₀ = 1 := by
+              change (D 5).inf x₀ y₀ = (D 5).inf x₁ y₀
+              have g₀: (D 5).inf x₀ y₀ = 1 := by
                 fin_cases y₀; all_goals simp at H ⊢
                 · fin_cases x₀ <;> decide
                 · rcases h.1 with (h | h) <;> (subst h;decide)
-              have g₁: N₅.inf x₁ y₀ = 1 := by
+              have g₁: (D 5).inf x₁ y₀ = 1 := by
                 fin_cases y₀; all_goals simp at H ⊢
                 · fin_cases x₁ <;> decide
                 · rcases h.2 with (h | h) <;> (subst h;decide)
@@ -666,7 +617,7 @@ lemma N₅_congr_inf (x₀ x₁ y₀ y₁ : Fin 5) :
               subst h
               rcases h'.2 with (h | h) <;> (subst h; decide))
 
-/-- The interval `[2,4]` in `N₅` is indiscernible. -/
+/-- The interval `[2,4]` in `(D 5)` is indiscernible. -/
 lemma N₅indiscernibleInterval (z : Fin 5) :
   z ∉ {u | 2 ∣ u.1 ∧ u.1 ∣ 4} →
     ∀ w₀ ∈ {u : Fin 5 | 2 ∣ u.1 ∧ u.1 ∣ 4},
@@ -682,10 +633,11 @@ lemma N₅indiscernibleInterval (z : Fin 5) :
       subst h
       simp
       rcases hw₁ with (h | h) <;> (subst h; simp))
+
 open Classical in
-/-- The lattice `N₅` is not simple. -/
-theorem not_simple_N₅ : ¬ Simple N₅ := by
-  have hio := @preserve_sup_of_indiscernible (Fin 5) N₅ 2 4
+/-- The lattice `(D 5)` is not simple. -/
+theorem not_simple_D₅ : ¬ Simple (D 5) := by
+  have hio := @preserve_sup_of_indiscernible (Fin 5) (D 5) 2 4
   unfold Simple
   push_neg
   use fun a b ↦ a = b ∨ {a, b} ⊆ {x | 2 ∣ x.1 ∧ x.1 ∣ 4}
@@ -705,7 +657,7 @@ theorem not_simple_N₅ : ¬ Simple N₅ := by
       rw [Set.pair_subset_iff, Set.pair_eq_pair_iff]
       simp
       constructor <;> aesop
-    · exact ⟨N₅_congr_sup, N₅_congr_inf⟩
+    · exact ⟨D₅_congr_sup, D₅_congr_inf⟩
 
   constructor
   · intro hc
@@ -795,120 +747,123 @@ lemma ofIcc {A : Type*} {l : Lattice A} {R : A → A → Prop}
         · apply symm
           tauto
 
-local notation x "∧" y => N₅.inf x y
-local notation x "∨" y => N₅.sup x y
 
-/-- Any congruence of `N₅` with `3∼0` makes `2∼4`. -/
-lemma of₃₀ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence N₅ R) (H : R 3 0) :
+/-- Any congruence of `(D 5)` with `3∼0` makes `2∼4`. -/
+lemma of₃₀D₅ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence (D 5) R) (H : R 3 0) :
     R 2 4 := by
       let refl := hR₀.1.1.1.refl
       let symm := hR₀.1.2.symm
       let conJoin := hR₀.2.1
       let conMeet := hR₀.2.2
-      have h₀ : 4 = (4 ∧ 0) := by decide
-      have h₁ : R (4 ∧ 0) (4 ∧ 3) := by
+      have h₀ : 4 = (D 5).inf 4 0 := by decide
+      have h₁ : R ((D 5).inf 4 0) ((D 5).inf 4 3) := by
         apply symm
         exact conMeet 4 4 3 0 (refl 4) H
-      have : (4 ∧ 3) = 1 := by decide
+      have : ((D 5).inf 4 3) = 1 := by decide
       have : R 4 1 := by
         rw [h₀]
         rw [this] at h₁
         exact h₁
-      rw [show 2 = (2 ∨ 1) by decide]
-      rw [show 4 = (2 ∨ 4) by decide]
+      rw [show 2 = ((D 5).sup 2 1) by decide]
+      rw [show 4 = ((D 5).sup 2 4) by decide]
       apply conJoin
       · apply refl
       · apply symm
         tauto
-/-- Any congruence of `N₅` with `3∼2` makes `2∼4`. -/
-lemma of₃₂ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence N₅ R) (H : R 3 2) :
+
+/-- Any congruence of `(D 5)` with `3∼2` makes `2∼4`. -/
+lemma of₃₂D₅ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence (D 5) R) (H : R 3 2) :
     R 2 4 := by
   let refl := hR₀.1.1.1.refl
   let symm := hR₀.1.2.symm
   let conJoin := hR₀.2.1
   let conMeet := hR₀.2.2
-  have h₀ : R (3 ∨ 3) (3 ∨ 2) := by apply conJoin;apply refl;exact H
-  have h₁ : (3 ∨ 3) = 3 := by decide
-  have h₂ : R 3 (3 ∨ 2) := by nth_rw 1 [← h₁];exact h₀
-  have h₃ : (3 ∨ 2) = 0 := by decide
+  have h₀ : R ((D 5).sup 3 3) ((D 5).sup 3 2) := by apply conJoin;apply refl;exact H
+  have h₁ : ((D 5).sup 3 3) = 3 := by decide
+  have h₂ : R 3 ((D 5).sup 3 2) := by nth_rw 1 [← h₁];exact h₀
+  have h₃ : ((D 5).sup 3 2) = 0 := by decide
   have : R 3 0 := by rw [h₃] at h₂;exact h₂
-  apply of₃₀ <;> tauto
-lemma of₃₄ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence N₅ R) (H : R 3 4) : R 2 4 := by
+  apply of₃₀D₅ <;> tauto
+
+lemma of₃₄D₅ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence (D 5) R) (H : R 3 4) : R 2 4 := by
   let refl := hR₀.1.1.1.refl
   let symm := hR₀.1.2.symm
   let conJoin := hR₀.2.1
   let conMeet := hR₀.2.2
-  have h₀ : R (3 ∨ 3) (3 ∨ 4) := by apply conJoin;apply refl;exact H
-  have h₁ : (3 ∨ 3) = 3 := by decide
-  have h₂ : R 3 (3 ∨ 2) := by nth_rw 1 [← h₁];exact h₀
-  have h₃ : (3 ∨ 2) = 0 := by decide
+  have h₀ : R ((D 5).sup 3 3) ((D 5).sup 3 4) := by apply conJoin;apply refl;exact H
+  have h₁ : ((D 5).sup 3 3) = 3 := by decide
+  have h₂ : R 3 ((D 5).sup 3 2) := by nth_rw 1 [← h₁];exact h₀
+  have h₃ : ((D 5).sup 3 2) = 0 := by decide
   have : R 3 0 := by rw [h₃] at h₂;exact h₂
-  apply of₃₀ <;> tauto
+  apply of₃₀D₅ <;> tauto
 
-/-- Any congruence of `N₅` with `3∼1` makes `2∼4`. -/
-lemma of₃₁ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence N₅ R) (H : R 3 1) :
+/-- Any congruence of `(D 5)` with `3∼1` makes `2∼4`. -/
+lemma of₃₁D₅ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence (D 5) R) (H : R 3 1) :
     R 2 4 := by
   let refl := hR₀.1.1.1.refl
   let symm := hR₀.1.2.symm
   let trans := fun {a b c} => hR₀.1.1.2.trans a b c
   let conJoin := hR₀.2.1
   let conMeet := hR₀.2.2
-  have h₀ : R (3 ∨ 2) (1 ∨ 2) := by apply conJoin;exact H;apply refl
-  have h₁ : (3 ∨ 2) = 0 := by decide
-  have h₂ : R 0 (1 ∨ 2) := by nth_rw 1 [← h₁];exact h₀
-  have h₃ : (1 ∨ 2) = 2 := by decide
+  have h₀ : R ((D 5).sup 3 2) ((D 5).sup 1 2) := by apply conJoin;exact H;apply refl
+  have h₁ : ((D 5).sup 3 2) = 0 := by decide
+  have h₂ : R 0 ((D 5).sup 1 2) := by nth_rw 1 [← h₁];exact h₀
+  have h₃ : ((D 5).sup 1 2) = 2 := by decide
   have : R 0 2 := by rw [h₃] at h₂;exact h₂
   -- then R 2 4 because 2 = 4 ∧ 2 ∼ 4 ∧ 0 = 4:
-  have : (4 ∧ 2) = 2 := by decide
+  have : ((D 5).inf 4 2) = 2 := by decide
   rw [← this]
-  have : R (4 ∧ 2) (4 ∧ 0) := by apply conMeet;apply refl;tauto
+  have : R ((D 5).inf 4 2) ((D 5).inf 4 0) := by apply conMeet;apply refl;tauto
   apply trans this
   apply refl
 
-/-- Any congruence of `N₅` with `2∼1` makes `2∼4`. -/
-lemma of₂₁ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence N₅ R) (H : R 2 1) : R 2 4 := by
+
+/-- Any congruence of `(D 5)` with `2∼1` makes `2∼4`. -/
+lemma of₂₁D₅ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence (D 5) R) (H : R 2 1) : R 2 4 := by
   let refl := hR₀.1.1.1.refl; let symm := hR₀.1.2.symm;
   let trans := fun {a b c} => hR₀.1.1.2.trans a b c
   let conJoin := hR₀.2.1; let conMeet := hR₀.2.2
   -- if 2=1 then 3 = 3 ∨ 1 = 3 ∨ 2 = 0
-  have g₀ : 3 = (3 ∨ 1) := by decide
-  have h₀ : R (3 ∨ 1) (3 ∨ 2) := by apply conJoin;apply refl;apply symm;exact H
-  have g₁ : (3 ∨ 2) = 0 := by decide
-  apply of₃₀ hR₀
+  have g₀ : 3 = ((D 5).sup 3 1) := by decide
+  have h₀ : R ((D 5).sup 3 1) ((D 5).sup 3 2) := by apply conJoin;apply refl;apply symm;exact H
+  have g₁ : ((D 5).sup 3 2) = 0 := by decide
+  apply of₃₀D₅ hR₀
   rw [g₀]
   apply trans h₀
   rw [g₁]
   apply refl
 
-/-- Any congruence of `N₅` with `4∼0` makes `2∼4`. -/
-lemma of₄₀ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence N₅ R) (H : R 4 0) : R 2 4 := by
+/-- Any congruence of `(D 5)` with `4∼0` makes `2∼4`. -/
+lemma of₄₀D₅ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence (D 5) R) (H : R 4 0) : R 2 4 := by
   let refl := hR₀.1.1.1.refl; let symm := hR₀.1.2.symm;
   let trans := fun {a b c} => hR₀.1.1.2.trans a b c
   let conJoin := hR₀.2.1; let conMeet := hR₀.2.2
   -- dual to of₂₁:
-  have g₀ : 3 = (3 ∧ 0) := by decide
-  have h₀ : R (3 ∧ 0) (3 ∧ 4) := by apply conMeet;apply refl;apply symm;exact H
-  have g₁ : (3 ∧ 4) = 1 := by decide
-  apply of₃₁ hR₀
+  have g₀ : 3 = ((D 5).inf 3 0) := by decide
+  have h₀ : R ((D 5).inf 3 0) ((D 5).inf 3 4) := by apply conMeet;apply refl;apply symm;exact H
+  have g₁ : ((D 5).inf 3 4) = 1 := by decide
+  apply of₃₁D₅ hR₀
   rw [g₀]
   apply trans h₀
   rw [g₁]
   apply refl
 
-/-- Any congruence of `N₅` with `3` equivalent to something else
+
+/-- Any congruence of `(D 5)` with `3` equivalent to something else
  makes `2∼4`. -/
-lemma of₃ (R : Fin 5 → Fin 5 → Prop) (hR₀ : congruence N₅ R)
-  (H : ∃ i, (i ≠ 3) ∧ R 3 i) : R 2 4 := by
+lemma of₃D₅ (R : Fin 5 → Fin 5 → Prop) (hR₀ : congruence (D 5) R)
+  (H : ∃ i ≠ 3, R 3 i) : R 2 4 := by
       obtain ⟨i,hi⟩ := H
       fin_cases i
       all_goals (simp at hi)
-      · apply of₃₀ hR₀ hi
-      · apply of₃₁ hR₀ hi
-      · apply of₃₂ hR₀ hi
-      · apply of₃₄ hR₀ hi
+      · apply of₃₀D₅ hR₀ hi
+      · apply of₃₁D₅ hR₀ hi
+      · apply of₃₂D₅ hR₀ hi
+      · apply of₃₄D₅ hR₀ hi
 
-/-- The lattice `N₅` is subdirectly irreducible. -/
-theorem sdi_N₅ : SubdirectlyIrreducible N₅ := by
+
+/-- The lattice `(D 5)` is subdirectly irreducible. -/
+theorem sdi_D₅ : SubdirectlyIrreducible (D 5) := by
     right
     use 2, 4
     constructor
@@ -919,7 +874,7 @@ theorem sdi_N₅ : SubdirectlyIrreducible N₅ := by
     let conJoin := hR₀.2.1
     let conMeet := hR₀.2.2
     by_cases H : ∃ i ≠ 3, R 3 i
-    · apply of₃ <;> tauto
+    · apply of₃D₅ <;> tauto
     · by_contra H'
       apply hR₁
       ext i j
@@ -937,7 +892,7 @@ theorem sdi_N₅ : SubdirectlyIrreducible N₅ := by
           simp
           apply symm H
         · contrapose! H'
-          apply of₄₀ hR₀
+          apply of₄₀D₅ hR₀
           apply symm H'
       · fin_cases j
         all_goals simp
@@ -945,7 +900,7 @@ theorem sdi_N₅ : SubdirectlyIrreducible N₅ := by
           apply ofIcc hR₀ (by change 1 ∣ 2;simp) ((by change 2 ∣ 4;simp)) (by change 4 ∣ 0;simp) H'
         · tauto
         · contrapose! H'
-          apply of₂₁ hR₀ <|symm H'
+          apply of₂₁D₅ hR₀ <|symm H'
         · contrapose! H
           use 1
           simp
@@ -957,7 +912,7 @@ theorem sdi_N₅ : SubdirectlyIrreducible N₅ := by
         · contrapose! H'
           apply ofIcc hR₀ (by change 2 ∣ 2;simp) ((by change 2 ∣ 4;simp)) (by change 4 ∣ 0;simp) H'
         · contrapose! H'
-          apply of₂₁ hR₀ H'
+          apply of₂₁D₅ hR₀ H'
         · tauto
         · contrapose! H
           use 2
@@ -978,22 +933,23 @@ theorem sdi_N₅ : SubdirectlyIrreducible N₅ := by
           tauto
       · fin_cases j; all_goals simp
         · contrapose! H'
-          apply of₄₀ hR₀ H'
+          apply of₄₀D₅ hR₀ H'
         · contrapose! H'
           apply ofIcc hR₀ (by change 1 ∣ 2;simp) ((by change 2 ∣ 4;simp))
             (by change 4 ∣ 4;simp) <|symm H'
         · contrapose! H'
           apply symm H'
         · contrapose! H'
-          apply of₃₄ hR₀ <| symm H'
+          apply of₃₄D₅ hR₀ <| symm H'
         · tauto
 
+
 /-- There exists a lattice that is subdirectly irreducible
- but not simple, namely `N₅`. -/
+ but not simple, namely `(D 5)`. -/
 theorem exists_sdi_not_simple : ∃ l : Lattice (Fin 5),
   SubdirectlyIrreducible l ∧ ¬ Simple l := by
-  use N₅
+  use D 5
   constructor
-  · exact sdi_N₅
-  · exact not_simple_N₅
+  · exact sdi_D₅
+  · exact not_simple_D₅
 end UniversalAlgebra
