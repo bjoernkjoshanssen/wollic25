@@ -170,9 +170,7 @@ def principalEquiv {A : Type*} (x y : A) (hxy : x ≠ y) :
           cases h₀ with
           | inl h =>
             cases h₁ with
-            | inl h₂ =>
-              left
-              exact h.trans h₂
+            | inl h₂ => exact .inl <| h.trans h₂
             | inr h₂ =>
               subst h
               tauto
@@ -180,7 +178,7 @@ def principalEquiv {A : Type*} (x y : A) (hxy : x ≠ y) :
             cases h₁ with
             | inl h₂ =>
               subst h₂
-              right;tauto
+              tauto
             | inr h₂ =>
               left
               have : a = x ∨ a = y := by
@@ -199,9 +197,8 @@ def principalEquiv {A : Type*} (x y : A) (hxy : x ≠ y) :
                     tauto
                 cases this with
                 | inl h =>
-                  subst h;simp at h
-                  rw [← h₂] at h
-                  rw [Set.ext_iff] at h
+                  subst h
+                  rw [← h₂, Set.ext_iff] at h
                   specialize h c
                   simp at h
                   tauto
@@ -222,8 +219,7 @@ def principalEquiv {A : Type*} (x y : A) (hxy : x ≠ y) :
                 cases this with
                 | inl h =>
                   subst h
-                  rw [← h₂] at h
-                  rw [Set.ext_iff] at h
+                  rw [← h₂, Set.ext_iff] at h
                   specialize h c
                   simp at h
                   cases h with
@@ -243,7 +239,7 @@ def principalEquiv {A : Type*} (x y : A) (hxy : x ≠ y) :
         symm := fun a b h => by
             cases h with
             | inl h => subst h;tauto
-            | inr h => right;rw [← h];ext;simp;tauto}
+            | inr h => right;rw [← h];rw [Set.pair_eq_pair_iff];simp}
 
 /-- An interval `[x,y]` is *strong* if its elements `u` agree on
 whether they are above or below a given element `z ∉ [x,y]`.
@@ -274,27 +270,18 @@ theorem preserve_sup_of_strong {A : Type*} (l : Lattice A) (x y : A)
       · right
         rw [Set.pair_subset_iff]
         constructor
-        · constructor
-          · apply le_trans h.1.1
-            apply le_sup_right
-          · apply sup_le H h.1.2
-        · constructor
-          · apply le_trans h.2.1
-            apply le_sup_right
-          · apply sup_le H h.2.2
+        · exact ⟨le_trans h.1.1 le_sup_right, sup_le H h.1.2⟩
+        · exact ⟨le_trans h.2.1 le_sup_right, sup_le H h.2.2⟩
       · left
         have hxy₀ := hxy' (SemilatticeSup.sup x₀ y₁) (by
           unfold Set.Icc
           simp only [Set.mem_setOf_eq]
           contrapose! H
-          apply le_trans ?_ H.2
-          apply le_sup_left) y₀ h.1 y₁ h.2
+          apply le_trans le_sup_left H.2) y₀ h.1 y₁ h.2
         have hxy₁ := hxy' (SemilatticeSup.sup x₀ y₀) (by
-          unfold Set.Icc
-          simp only [Set.mem_setOf_eq]
+          simp only [Set.Icc, Set.mem_setOf_eq]
           contrapose! H
-          apply le_trans ?_ H.2
-          apply le_sup_left) y₀ h.1 y₁ h.2
+          apply le_trans le_sup_left H.2) y₀ h.1 y₁ h.2
         apply le_antisymm
         · apply sup_le
           · apply le_sup_left
@@ -312,22 +299,8 @@ theorem preserve_sup_of_strong {A : Type*} (l : Lattice A) (x y : A)
       · right
         rw [Set.pair_subset_iff] at h ⊢
         constructor
-        · constructor
-          · apply le_trans
-            · change x ≤ x₀
-              exact h.1.1
-            apply le_sup_left
-          · apply sup_le
-            · exact h.1.2
-            · exact H.2
-        · constructor
-          · apply le_trans
-            · change x ≤ x₁
-              exact h.2.1
-            · apply le_sup_left
-          · apply sup_le
-            · exact h.2.2
-            · exact H.2
+        · exact ⟨le_trans h.1.1 le_sup_left, sup_le h.1.2 H.2⟩
+        · exact ⟨le_trans h.2.1 le_sup_left, sup_le h.2.2 H.2⟩
       · by_cases H₀ : x ≤ y₀
         · left
           apply le_antisymm
@@ -336,57 +309,32 @@ theorem preserve_sup_of_strong {A : Type*} (l : Lattice A) (x y : A)
                 contrapose! H
                 constructor
                 · tauto
-                · apply le_trans
-                  change _ ≤  SemilatticeSup.sup x₁ y₀
-                  apply le_sup_right
-                  exact H.2) x₀ (by apply h;simp) x₁ (by apply h;simp)
-              apply this.1.mpr
-              apply le_sup_left
+                · exact le_trans le_sup_right H.2) x₀ (by apply h;simp) x₁ (by apply h;simp)
+              apply this.1.mpr le_sup_left
             · apply le_sup_right
           · apply sup_le
             · have := hxy' ( SemilatticeSup.sup x₀ y₀) (by
                 contrapose! H
                 constructor
                 · tauto
-                · apply le_trans
-                  change _ ≤  SemilatticeSup.sup x₀ y₀
-                  apply le_sup_right
-                  exact H.2) x₀ (by apply h;simp) x₁ (by apply h;simp)
-              apply this.1.mp
-              apply le_sup_left
+                · apply le_trans le_sup_right H.2) x₀ (by apply h;simp) x₁ (by apply h;simp)
+              apply this.1.mp le_sup_left
             · apply le_sup_right
         · by_cases H₁ : y₀ ≤ y
           · right
             rw [Set.pair_subset_iff] at h ⊢
             constructor
-            · constructor
-              · apply le_trans
-                · change _ ≤ x₀
-                  exact h.1.1
-                apply le_sup_left
-              · apply sup_le
-                · exact h.1.2
-                · tauto
-            · constructor
-              · apply le_trans
-                · change _ ≤ x₁
-                  exact h.2.1
-                · apply le_sup_left
-              · apply sup_le
-                · exact h.2.2
-                · tauto
+            · exact ⟨le_trans h.1.1 le_sup_left, sup_le h.1.2 H₁⟩
+            · exact ⟨le_trans h.2.1 le_sup_left, sup_le h.2.2 H₁⟩
           left
           apply le_antisymm
           · apply sup_le
             · have := hxy' (SemilatticeSup.sup x₁ y₀)
                 (by
                     contrapose! H₁
-                    have := H₁.2
-                    apply le_trans _ this
-                    apply le_sup_right) x₀ (by apply h;simp) x₁
+                    apply le_trans le_sup_right H₁.2) x₀ (by apply h;simp) x₁
                     (by apply h;simp)
-              apply this.1.mpr
-              apply le_sup_left
+              apply this.1.mpr le_sup_left
             · apply le_sup_right
 
           · apply sup_le
@@ -394,30 +342,16 @@ theorem preserve_sup_of_strong {A : Type*} (l : Lattice A) (x y : A)
                 (by
                     contrapose! H₁
                     have := H₁.2
-                    apply le_trans _ this
-                    apply le_sup_right) x₀ (by apply h;simp) x₁
+                    apply le_trans le_sup_right this) x₀ (by apply h;simp) x₁
                     (by apply h;simp)
-              apply this.1.mp
-              apply le_sup_left
+              apply this.1.mp le_sup_left
             · apply le_sup_right
     | inr h' =>
       right
       rw [Set.pair_subset_iff] at h h' ⊢
       constructor
-      · constructor
-        · apply le_trans
-          · exact h.1.1
-          · apply le_sup_left
-        · apply sup_le
-          · exact h.1.2
-          · exact h'.1.2
-      · constructor
-        · apply le_trans
-          · exact h.2.1
-          · apply le_sup_left
-        · apply sup_le
-          · exact h.2.2
-          · exact h'.2.2
+      · exact ⟨le_trans h.1.1 le_sup_left, sup_le h.1.2 h'.1.2⟩
+      · exact ⟨le_trans h.2.1 le_sup_left, sup_le h.2.2 h'.2.2⟩
 
 
 /-- Simple implies subdirectly irreducible.
@@ -445,7 +379,6 @@ theorem sdi_of_simple {A : Type*} (l : Lattice A) (h : Simple l) :
 
 lemma N₅helper : {u : Fin 5 | 2 ∣ u.1 ∧ u.1 ∣ 4} = {2, 4} := by
     ext u
-    simp
     constructor
     · intro h
       obtain ⟨c₀,hc₀⟩ := h.1
@@ -456,7 +389,7 @@ lemma N₅helper : {u : Fin 5 | 2 ∣ u.1 ∧ u.1 ∣ 4} = {2, 4} := by
         | inr h => right;exact Fin.eq_of_val_eq h
       rw [hc₀] at hc₁
       have : 2 * 2 = 2 * (c₀ * c₁) := by rw [← mul_assoc];omega
-      have : 2 = c₀ * c₁ := by
+      have h₀ : 2 = c₀ * c₁ := by
         have := (mul_left_cancel_iff_of_pos (show 0 < 2 by simp) (c:= 2)
           (b := c₀ * c₁)).mp this.symm
         omega
@@ -464,7 +397,7 @@ lemma N₅helper : {u : Fin 5 | 2 ∣ u.1 ∧ u.1 ∣ 4} = {2, 4} := by
         intro hc
         subst hc
         simp at this
-      have : c₀ ∣ 2 := by (expose_names; exact Dvd.intro c₁ (id (Eq.symm this_2)))
+      have : c₀ ∣ 2 := Dvd.intro c₁ h₀.symm
       have : c₀ ≤ 2 := by apply Nat.le_of_dvd;simp;tauto
       have : c₀ = 1 ∨ c₀ = 2 := by omega
       cases this with
@@ -472,7 +405,6 @@ lemma N₅helper : {u : Fin 5 | 2 ∣ u.1 ∧ u.1 ∣ 4} = {2, 4} := by
       subst h
       have : c₁ = 2 := by omega
       subst this
-      left
       tauto
       | inr h =>
           subst h
@@ -484,11 +416,11 @@ lemma N₅helper : {u : Fin 5 | 2 ∣ u.1 ∧ u.1 ∣ 4} = {2, 4} := by
     cases h with
     | inl h =>
         subst h
-        change 2 ∣ 2 ∧ 2 ∣ 4
+        change _ ∣ _ ∧ 2 ∣ _
         omega
     | inr h =>
         subst h
-        change 2 ∣ 4 ∧ 4 ∣ 4
+        change _ ∣ _ ∧ 4 ∣ _
         omega
 
 open Classical in
@@ -513,45 +445,20 @@ lemma N₅_congr_sup (x₀ x₁ y₀ y₁ : Fin 5) :
             by_cases H : x₀ ∈ ({2, 4} : Set (Fin 5))
             · right
               rw [N₅helper]
-
               rw [Set.pair_subset_iff] at h ⊢
               constructor
-              · cases H with
-              | inl h' =>
-                subst h'
-                have := h.1
-                cases this with
-                | inl h => subst h;simp;decide
-                | inr h => simp at h;subst h;simp;decide
-              | inr h =>
-                simp at h
-                subst h
-                have := h.1
-                cases this with
-                | inl h => subst h;simp;decide
-                | inr h => subst h;simp;decide
-              · cases H with
-              | inl h' =>
-                subst h'
-                have := h.2
-                cases this with
-                | inl h => subst h;simp;decide
-                | inr h => simp at h;subst h;simp;decide
-              | inr h =>
-                simp at h
-                subst h
-                have := h.2
-                cases this with
-                | inl h => subst h;simp;decide
-                | inr h => subst h;simp;decide
+              · rcases H with (h | h) <;> (
+                    subst h
+                    rcases h.1 with (h | h) <;> (subst h;simp;decide))
+              · rcases H with (h | h) <;> (
+                    subst h
+                    rcases h.2 with (h | h) <;> (subst h;simp;decide))
             · rw [Set.pair_subset_iff] at h
               simp at h H
-              have h₁ := h.1
-              have h₂ := h.2
-              cases h₁ with
+              cases h.1 with
               | inl h =>
                 subst h
-                cases h₂ with
+                cases h.2 with
                 | inl h =>
                     subst h
                     left
@@ -559,45 +466,29 @@ lemma N₅_congr_sup (x₀ x₁ y₀ y₁ : Fin 5) :
                 | inr h =>
                     subst h
                     fin_cases x₀
-                    · simp at H ⊢
-                      left
-                      change N₅.sup 0 2 = N₅.sup 0 4
+                    · decide
+                    · rw [N₅helper, Set.pair_subset_iff]
                       decide
                     · simp at H ⊢
-                      right
-                      rw [N₅helper]
-                      rw [Set.pair_subset_iff]
-                      simp
-                      decide
-                    · simp at H ⊢
-                    · simp at H ⊢
-                      left
-                      decide
+                    · simp at H ⊢; decide
                     · simp at H ⊢
               | inr h =>
                 subst h
-                cases h₂ with
+                cases h.2 with
                 | inl h =>
                     subst h
                     fin_cases x₀
+                    · simp at H ⊢; decide
                     · simp at H ⊢
+                      rw [N₅helper, Set.pair_subset_iff]
                       decide
                     · simp at H ⊢
-                      right
-                      rw [N₅helper]
-                      rw [Set.pair_subset_iff]
-                      simp
-                      decide
-                    · simp at H ⊢
-                    · simp at H ⊢
-                      left
-                      decide
+                    · simp at H ⊢; decide
                     · simp at H ⊢
                 | inr h =>
                     subst h
                     left
                     rfl
-
       | inr h =>
         rw [Set.pair_subset_iff] at h
         cases h₁ with
@@ -675,54 +566,14 @@ lemma N₅_congr_sup (x₀ x₁ y₀ y₁ : Fin 5) :
           rw [Set.pair_subset_iff] at h' ⊢
           rw [N₅helper]
           constructor
-          -- done above?
           · simp
-            have := h.1
-            cases this with
-            | inl h =>
+            rcases h.1 with (h | h) <;> (
               subst h
-              have := h'.1
-              cases this with
-              | inl h =>
-                subst h
-                decide
-              | inr h =>
-                subst h
-                decide
-            | inr h =>
+              rcases h'.1 with (h | h) <;> (subst h; decide))
+          · simp
+            rcases h.2 with (h | h) <;> (
               subst h
-              have := h'.1
-              cases this with
-              | inl h =>
-                subst h
-                decide
-              | inr h =>
-                subst h
-                decide
-
-          simp
-          have := h.2
-          cases this with
-          | inl h =>
-            subst h
-            have := h'.2
-            cases this with
-            | inl h =>
-                subst h
-                decide
-            | inr h =>
-                subst h
-                decide
-          | inr h =>
-            subst h
-            have := h'.2
-            cases this with
-            | inl h =>
-                subst h
-                decide
-            | inr h =>
-                subst h
-                decide
+              rcases h'.2 with (h | h) <;> (subst h; decide))
 open Classical in
 /-- The principal equivalence relation with block `{2,4}`
 preserves `∧` in `N₅`. -/
@@ -969,34 +820,14 @@ lemma N₅strongInterval (z : Fin 5) :
     intro hz w₀ hw₀ w₁ hw₁
     simp at hz hw₀ hw₁
     fin_cases z
-    · simp at hz ⊢
-      omega
-    · simp at hz ⊢
-      omega
+    · simp at hz ⊢; omega
+    · simp at hz ⊢; omega
     · simp at hz ⊢
     · simp at hz ⊢
-      cases hw₀ with
-      | inl h =>
+      rcases hw₀ with (h | h) <;> (
         subst h
         simp
-        cases hw₁ with
-        | inl h =>
-            subst h
-            simp
-        | inr h =>
-            subst h
-            change (¬ 4 ∣ 3) ∧ (¬ 3 ∣ 4)
-            simp
-      | inr h =>
-        subst h
-        cases hw₁ with
-        | inl h =>
-            subst h
-            change  (↑4 ∣ 3 ↔ ↑2 ∣ 3) ∧ (3 ∣ ↑4 ↔ 3 ∣ ↑2)
-            simp
-        | inr h =>
-            subst h
-            simp
+        rcases hw₁ with (h | h) <;> (subst h; simp))
     · simp at hz ⊢
 open Classical in
 /-- The lattice `N₅` is not simple. -/
@@ -1018,14 +849,9 @@ theorem not_simple_N₅ : ¬ Simple N₅ := by
       rw [N₅helper]
       convert this using 1
       ext i j
-      rw [Set.pair_subset_iff]
-      rw [Set.pair_eq_pair_iff]
+      rw [Set.pair_subset_iff, Set.pair_eq_pair_iff]
       simp
-      constructor
-      · intro h
-        aesop
-      · intro h
-        aesop
+      constructor <;> aesop
     · constructor
       · apply N₅_congr_sup
       · apply N₅_congr_inf
@@ -1039,17 +865,14 @@ theorem not_simple_N₅ : ¬ Simple N₅ := by
     simp at hc
     apply hc
     rw [Set.pair_subset_iff]
-    constructor
-    · simp
-    · simp
+    simp
   · intro hc
     rw [funext_iff] at hc
     specialize hc 0
     rw [funext_iff] at hc
     specialize hc 1
     simp at hc
-    have := hc (show 0 ∈ {0,1} by simp)
-    simp at this
+    simpa using hc (show 0 ∈ {0,1} by simp)
 
 /-- If `R` is a congruence of a lattice `L`
  then its blocks are convex: if
