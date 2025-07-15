@@ -9,30 +9,31 @@ import Mathlib.Order.Lattice
 
 # Subdirect irreducibility and simplicity of lattices
 
-We prove that there exists a lattice that is SDI but not simple,
-namely N₅.
--/
-
-section UniversalAlgebra
-
-def congruence {L : Type*} (l : Lattice L) (R : L → L → Prop) : Prop :=
-    IsEquiv _ R ∧
-    (∀ x₀ x₁ y₀ y₁, R x₀ x₁ → R y₀ y₁ → R (l.sup x₀ y₀) (l.sup x₁ y₁)) ∧
-    (∀ x₀ x₁ y₀ y₁, R x₀ x₁ → R y₀ y₁ → R (l.inf x₀ y₀) (l.inf x₁ y₁))
-
-
-/-
+We prove that there exists a lattice that is
+subdirectly irreducible but not simple.
 
   0
  / \
-|   4=c
-a=3 |
-|   2=b
+|  `4`
+3  `|`
+|  `2`
  \ /
   1
 
 -/
 
+section UniversalAlgebra
+
+/-- `R` is a congruence of the lattice `L` if it
+ is an equivalence relation that preserves `∨` and `∧`. -/
+def congruence {L : Type*} (l : Lattice L) (R : L → L → Prop) : Prop :=
+    IsEquiv _ R ∧
+    (∀ x₀ x₁ y₀ y₁, R x₀ x₁ → R y₀ y₁ → R (l.sup x₀ y₀) (l.sup x₁ y₁)) ∧
+    (∀ x₀ x₁ y₀ y₁, R x₀ x₁ → R y₀ y₁ → R (l.inf x₀ y₀) (l.inf x₁ y₁))
+
+/-- `N₅` is the 5-element nonmodular lattice.
+ We realize it is `{0,1,...,4}` under divisibility `x ∣ y`.
+-/
 noncomputable def N₅ : Lattice (Fin 5) := {
     le := fun x y =>
         Dvd.dvd x.1 y.1 -- x.1 ∣ y.1
@@ -146,15 +147,24 @@ noncomputable def N₅ : Lattice (Fin 5) := {
     inf_le_right := fun a b => Nat.gcd_dvd_right ↑a ↑b
     le_inf := fun a b c h₀ h₁ => Nat.dvd_gcd h₀ h₁
 }
+
+/-- A lattice `L` is *subdirectly irreducible* if it contains two elements
+`a, b` that are identified by any nontrivial congruence.
+
+(We also allow the trivial case `|L| ≤ 1`.)
+-/
 def SubdirectlyIrreducible {A : Type*} (l : Lattice A) :=
     (∀ a b : A, a = b) ∨ ∃ a b : A, a ≠ b ∧ ∀ R, congruence l R → R ≠ Eq → R a b
 
+/-- A lattice is simple if it has no nontrivial congruences. -/
 def Simple {A : Type*} (l : Lattice A) : Prop :=
     ∀ R, congruence l R → R = Eq ∨ R = fun _ _ => True
 
-theorem principalConGen {A : Type*} (x y : A) (hxy : x ≠ y) :
-    IsEquiv A fun a b ↦ a = b ∨ ({a, b} : Set A) = {x, y} := by
-    · exact {
+/-- The equivalence relation that identifies two elements `x ≠ y`.
+(The assumption `x ≠ y` is not strictly speaking needed.)
+-/
+def principalEquiv {A : Type*} (x y : A) (hxy : x ≠ y) :
+    IsEquiv A fun a b ↦ a = b ∨ ({a, b} : Set A) = {x, y} := {
         refl := fun a => Or.inl rfl
         trans := fun a b c h₀ h₁ => by
           cases h₀ with
@@ -233,10 +243,14 @@ theorem principalConGen {A : Type*} (x y : A) (hxy : x ≠ y) :
         symm := fun a b h => by
             cases h with
             | inl h => subst h;tauto
-            | inr h => right;rw [← h];ext;simp;tauto
-    }
+            | inr h => right;rw [← h];ext;simp;tauto}
 
-theorem iolaniMonday {A : Type*} (l : Lattice A) (x y : A)
+/-- An interval `[x,y]` is *strong* if its elements `u` agree on
+whether they are above or below a given element `z ∉ [x,y]`.
+The equivalence relation formed by collapsing such an interval
+preserves `∨`.
+-/
+theorem preserve_sup_of_strong {A : Type*} (l : Lattice A) (x y : A)
   (hxy' :
     ∀ z ∉ Set.Icc x y,
       ∀ w₀ ∈ Set.Icc x y,
@@ -407,9 +421,7 @@ theorem iolaniMonday {A : Type*} (l : Lattice A) (x y : A)
 
 
 /-- Simple implies subdirectly irreducible.
-N₅ is an example of the failure of the converse.
-Just need `principal_preserves_meet₂₄` and
-`principal_preserves_join₂₄`.
+(N₅ is an example of the failure of the converse.)
 M₃ is simple.
 -/
 theorem sdi_of_simple {A : Type*} (l : Lattice A) (h : Simple l) :
@@ -431,62 +443,64 @@ theorem sdi_of_simple {A : Type*} (l : Lattice A) (h : Simple l) :
         | inr h => exact h ▸ trivial
 
 
-lemma hgood : {u : Fin 5 | 2 ∣ u.1 ∧ u.1 ∣ 4} =
-    {2, 4} := by
-        ext u
-        simp
-        constructor
-        · intro h
-          obtain ⟨c₀,hc₀⟩ := h.1
-          obtain ⟨c₁,hc₁⟩ := h.2
-          suffices (u.1 = 2) ∨ (u.1 = 4) by
-            cases this with
-            | inl h => left;exact Fin.eq_of_val_eq h
-            | inr h => right;exact Fin.eq_of_val_eq h
-          rw [hc₀] at hc₁
-          have : 2 * 2 = 2 * (c₀ * c₁) := by rw [← mul_assoc];omega
-          have : 2 = c₀ * c₁ := by
-            have := (mul_left_cancel_iff_of_pos (show 0 < 2 by simp) (c:= 2)
-              (b := c₀ * c₁)).mp this.symm
-            omega
-          have : c₀ ≠ 0 := by
-            intro hc
-            subst hc
-            simp at this
-          have : c₀ ∣ 2 := by (expose_names; exact Dvd.intro c₁ (id (Eq.symm this_2)))
-          have : c₀ ≤ 2 := by apply Nat.le_of_dvd;simp;tauto
-          have : c₀ = 1 ∨ c₀ = 2 := by omega
-          cases this with
-          | inl h =>
+lemma N₅helper : {u : Fin 5 | 2 ∣ u.1 ∧ u.1 ∣ 4} = {2, 4} := by
+    ext u
+    simp
+    constructor
+    · intro h
+      obtain ⟨c₀,hc₀⟩ := h.1
+      obtain ⟨c₁,hc₁⟩ := h.2
+      suffices (u.1 = 2) ∨ (u.1 = 4) by
+        cases this with
+        | inl h => left;exact Fin.eq_of_val_eq h
+        | inr h => right;exact Fin.eq_of_val_eq h
+      rw [hc₀] at hc₁
+      have : 2 * 2 = 2 * (c₀ * c₁) := by rw [← mul_assoc];omega
+      have : 2 = c₀ * c₁ := by
+        have := (mul_left_cancel_iff_of_pos (show 0 < 2 by simp) (c:= 2)
+          (b := c₀ * c₁)).mp this.symm
+        omega
+      have : c₀ ≠ 0 := by
+        intro hc
+        subst hc
+        simp at this
+      have : c₀ ∣ 2 := by (expose_names; exact Dvd.intro c₁ (id (Eq.symm this_2)))
+      have : c₀ ≤ 2 := by apply Nat.le_of_dvd;simp;tauto
+      have : c₀ = 1 ∨ c₀ = 2 := by omega
+      cases this with
+      | inl h =>
+      subst h
+      have : c₁ = 2 := by omega
+      subst this
+      left
+      tauto
+      | inr h =>
           subst h
-          have : c₁ = 2 := by omega
+          have : c₁ = 1 := by omega
           subst this
-          left
-          tauto
-          | inr h =>
-              subst h
-              have : c₁ = 1 := by omega
-              subst this
-              rw [hc₀]
-              simp
-        intro h
-        cases h with
-        | inl h =>
-            subst h
-            change 2 ∣ 2 ∧ 2 ∣ 4
-            omega
-        | inr h =>
-            subst h
-            change 2 ∣ 4 ∧ 4 ∣ 4
-            omega
+          rw [hc₀]
+          simp
+    intro h
+    cases h with
+    | inl h =>
+        subst h
+        change 2 ∣ 2 ∧ 2 ∣ 4
+        omega
+    | inr h =>
+        subst h
+        change 2 ∣ 4 ∧ 4 ∣ 4
+        omega
+
 open Classical in
-theorem iolanimondaysup (x₀ x₁ y₀ y₁ : Fin 5) :
-  (fun a b ↦ a = b ∨ {a, b} ⊆ {x | 2 ∣ x.1 ∧ x.1 ∣ 4}) x₀ x₁ →
+/-- The principal equivalence relation with block `{2,4}`
+preserves `∨` in `N₅`. -/
+lemma N₅_congr_sup (x₀ x₁ y₀ y₁ : Fin 5) :
+    (fun a b ↦ a = b ∨ {a, b} ⊆ {x | 2 ∣ x.1 ∧ x.1 ∣ 4}) x₀ x₁ →
     (fun a b ↦ a = b ∨ {a, b} ⊆ {x | 2 ∣ x.1 ∧ x.1 ∣ 4}) y₀ y₁ →
-      (fun a b ↦ a = b ∨ {a, b} ⊆ {x | 2 ∣ x.1 ∧ x.1 ∣ 4})
+    (fun a b ↦ a = b ∨ {a, b} ⊆ {x | 2 ∣ x.1 ∧ x.1 ∣ 4})
       (N₅.sup x₀ y₀) (N₅.sup x₁ y₁) := by
       intro h₀ h₁
-      rw [hgood] at h₀ h₁
+      rw [N₅helper] at h₀ h₁
       cases h₀ with
       | inl h =>
         subst h
@@ -498,7 +512,7 @@ theorem iolanimondaysup (x₀ x₁ y₀ y₁ : Fin 5) :
         | inr h =>
             by_cases H : x₀ ∈ ({2, 4} : Set (Fin 5))
             · right
-              rw [hgood]
+              rw [N₅helper]
 
               rw [Set.pair_subset_iff] at h ⊢
               constructor
@@ -551,7 +565,7 @@ theorem iolanimondaysup (x₀ x₁ y₀ y₁ : Fin 5) :
                       decide
                     · simp at H ⊢
                       right
-                      rw [hgood]
+                      rw [N₅helper]
                       rw [Set.pair_subset_iff]
                       simp
                       decide
@@ -570,7 +584,7 @@ theorem iolanimondaysup (x₀ x₁ y₀ y₁ : Fin 5) :
                       decide
                     · simp at H ⊢
                       right
-                      rw [hgood]
+                      rw [N₅helper]
                       rw [Set.pair_subset_iff]
                       simp
                       decide
@@ -659,7 +673,7 @@ theorem iolanimondaysup (x₀ x₁ y₀ y₁ : Fin 5) :
         | inr h' =>
           right
           rw [Set.pair_subset_iff] at h' ⊢
-          rw [hgood]
+          rw [N₅helper]
           constructor
           -- done above?
           · simp
@@ -710,13 +724,15 @@ theorem iolanimondaysup (x₀ x₁ y₀ y₁ : Fin 5) :
                 subst h
                 decide
 open Classical in
-theorem iolanimondayinf (x₀ x₁ y₀ y₁ : Fin 5) :
+/-- The principal equivalence relation with block `{2,4}`
+preserves `∧` in `N₅`. -/
+lemma N₅_congr_inf (x₀ x₁ y₀ y₁ : Fin 5) :
   (fun a b ↦ a = b ∨ {a, b} ⊆ {x | 2 ∣ x.1 ∧ x.1 ∣ 4}) x₀ x₁ →
     (fun a b ↦ a = b ∨ {a, b} ⊆ {x | 2 ∣ x.1 ∧ x.1 ∣ 4}) y₀ y₁ →
       (fun a b ↦ a = b ∨ {a, b} ⊆ {x | 2 ∣ x.1 ∧ x.1 ∣ 4})
       (N₅.inf x₀ y₀) (N₅.inf x₁ y₁) := by
       intro h₀ h₁
-      rw [hgood] at h₀ h₁
+      rw [N₅helper] at h₀ h₁
       cases h₀ with
       | inl h =>
         subst h
@@ -728,7 +744,7 @@ theorem iolanimondayinf (x₀ x₁ y₀ y₁ : Fin 5) :
         | inr h =>
             by_cases H : x₀ ∈ ({2, 4} : Set (Fin 5))
             · right
-              rw [hgood]
+              rw [N₅helper]
 
               rw [Set.pair_subset_iff] at h ⊢
               constructor
@@ -777,7 +793,7 @@ theorem iolanimondayinf (x₀ x₁ y₀ y₁ : Fin 5) :
                     fin_cases x₀
                     · simp at H ⊢
                       right
-                      rw [hgood]
+                      rw [N₅helper]
                       rw [Set.pair_subset_iff]
                       simp
                       decide
@@ -798,7 +814,7 @@ theorem iolanimondayinf (x₀ x₁ y₀ y₁ : Fin 5) :
                     fin_cases x₀
                     · simp at H ⊢
                       right
-                      rw [hgood]
+                      rw [N₅helper]
                       rw [Set.pair_subset_iff]
                       simp
                       decide
@@ -892,7 +908,7 @@ theorem iolanimondayinf (x₀ x₁ y₀ y₁ : Fin 5) :
         | inr h' =>
           right
           rw [Set.pair_subset_iff] at h' ⊢
-          rw [hgood]
+          rw [N₅helper]
           constructor
           -- done above?
           · simp
@@ -943,12 +959,13 @@ theorem iolanimondayinf (x₀ x₁ y₀ y₁ : Fin 5) :
                 subst h
                 decide
 
+/-- The interval `[2,4]` in `N₅` is strong. -/
 lemma N₅strongInterval (z : Fin 5) :
   z ∉ {u | 2 ∣ u.1 ∧ u.1 ∣ 4} →
     ∀ w₀ ∈ {u : Fin 5 | 2 ∣ u.1 ∧ u.1 ∣ 4},
     ∀ w₁ ∈ {u : Fin 5 | 2 ∣ u.1 ∧ u.1 ∣ 4},
       (w₀.1 ∣ z.1 ↔ ↑w₁ ∣ z.1) ∧ (z.1 ∣ w₀.1 ↔ z.1 ∣ ↑w₁) := by
-    rw [hgood]
+    rw [N₅helper]
     intro hz w₀ hw₀ w₁ hw₁
     simp at hz hw₀ hw₁
     fin_cases z
@@ -982,8 +999,9 @@ lemma N₅strongInterval (z : Fin 5) :
             simp
     · simp at hz ⊢
 open Classical in
+/-- The lattice `N₅` is not simple. -/
 theorem not_simple_N₅ : ¬ Simple N₅ := by
-  have hio := @iolaniMonday (Fin 5) N₅ 2 4
+  have hio := @preserve_sup_of_strong (Fin 5) N₅ 2 4
   unfold Simple
   push_neg
   use (fun a b ↦ a = b ∨ {a, b} ⊆ {x | 2 ∣ x.1 ∧ x.1 ∣ 4})
@@ -996,8 +1014,8 @@ theorem not_simple_N₅ : ¬ Simple N₅ := by
       apply N₅strongInterval)
 
     constructor
-    · have := principalConGen (2:Fin 5) 4 (by simp)
-      rw [hgood]
+    · have := principalEquiv (2:Fin 5) 4 (by simp)
+      rw [N₅helper]
       convert this using 1
       ext i j
       rw [Set.pair_subset_iff]
@@ -1009,8 +1027,8 @@ theorem not_simple_N₅ : ¬ Simple N₅ := by
       · intro h
         aesop
     · constructor
-      · apply iolanimondaysup
-      · apply iolanimondayinf
+      · apply N₅_congr_sup
+      · apply N₅_congr_inf
 
   constructor
   · intro hc
@@ -1033,11 +1051,9 @@ theorem not_simple_N₅ : ¬ Simple N₅ := by
     have := hc (show 0 ∈ {0,1} by simp)
     simp at this
 
-
-
-
-/-- If R is a congruence, a ≤ b ≤ c ≤ d, and R(a,d),
-then R(b,c). -/
+/-- If `R` is a congruence of a lattice `L`
+ then its blocks are convex: if
+ `a ≤ b ≤ c ≤ d` and `R(a,d)` then `R(b,c)`. -/
 lemma ofIcc {A : Type*} {l : Lattice A} {R : A → A → Prop}
     (hR₀ : congruence l R)
     {a b c d : A} (o₀ : l.le a b) (o₁ : l.le b c) (o₂ : l.le c d)
@@ -1108,7 +1124,9 @@ lemma ofIcc {A : Type*} {l : Lattice A} {R : A → A → Prop}
 local notation x "∧" y => N₅.inf x y
 local notation x "∨" y => N₅.sup x y
 
-lemma of₃₀ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence N₅ R) (H : R 3 0) : R 2 4 := by
+/-- Any congruence of `N₅` with `3∼0` makes `2∼4`. -/
+lemma of₃₀ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence N₅ R) (H : R 3 0) :
+    R 2 4 := by
       let refl := hR₀.1.1.1.refl
       let symm := hR₀.1.2.symm
       let conJoin := hR₀.2.1
@@ -1128,7 +1146,9 @@ lemma of₃₀ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence N₅ R) (H : R
       · apply refl
       · apply symm
         tauto
-lemma of₃₂ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence N₅ R) (H : R 3 2) : R 2 4 := by
+/-- Any congruence of `N₅` with `3∼2` makes `2∼4`. -/
+lemma of₃₂ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence N₅ R) (H : R 3 2) :
+    R 2 4 := by
   let refl := hR₀.1.1.1.refl
   let symm := hR₀.1.2.symm
   let conJoin := hR₀.2.1
@@ -1150,7 +1170,10 @@ lemma of₃₄ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence N₅ R) (H : R
   have h₃ : (3 ∨ 2) = 0 := by decide
   have : R 3 0 := by rw [h₃] at h₂;exact h₂
   apply of₃₀ <;> tauto
-lemma of₃₁ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence N₅ R) (H : R 3 1) : R 2 4 := by
+
+/-- Any congruence of `N₅` with `3∼1` makes `2∼4`. -/
+lemma of₃₁ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence N₅ R) (H : R 3 1) :
+    R 2 4 := by
   let refl := hR₀.1.1.1.refl
   let symm := hR₀.1.2.symm
   let trans := fun {a b c} => hR₀.1.1.2.trans a b c
@@ -1167,6 +1190,8 @@ lemma of₃₁ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence N₅ R) (H : R
   have : R (4 ∧ 2) (4 ∧ 0) := by apply conMeet;apply refl;tauto
   apply trans this
   apply refl
+
+/-- Any congruence of `N₅` with `2∼1` makes `2∼4`. -/
 lemma of₂₁ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence N₅ R) (H : R 2 1) : R 2 4 := by
   let refl := hR₀.1.1.1.refl; let symm := hR₀.1.2.symm;
   let trans := fun {a b c} => hR₀.1.1.2.trans a b c
@@ -1180,6 +1205,8 @@ lemma of₂₁ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence N₅ R) (H : R
   apply trans h₀
   rw [g₁]
   apply refl
+
+/-- Any congruence of `N₅` with `4∼0` makes `2∼4`. -/
 lemma of₄₀ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence N₅ R) (H : R 4 0) : R 2 4 := by
   let refl := hR₀.1.1.1.refl; let symm := hR₀.1.2.symm;
   let trans := fun {a b c} => hR₀.1.1.2.trans a b c
@@ -1194,7 +1221,9 @@ lemma of₄₀ {R : Fin 5 → Fin 5 → Prop} (hR₀ : congruence N₅ R) (H : R
   rw [g₁]
   apply refl
 
-theorem of₃ (R : Fin 5 → Fin 5 → Prop) (hR₀ : congruence N₅ R)
+/-- Any congruence of `N₅` with `3` equivalent to something else
+ makes `2∼4`. -/
+lemma of₃ (R : Fin 5 → Fin 5 → Prop) (hR₀ : congruence N₅ R)
   (H : ∃ i, (i ≠ 3) ∧ R 3 i) : R 2 4 := by
       obtain ⟨i,hi⟩ := H
       fin_cases i
@@ -1208,6 +1237,7 @@ theorem of₃ (R : Fin 5 → Fin 5 → Prop) (hR₀ : congruence N₅ R)
       · simp at hi
         apply of₃₄ hR₀ hi
 
+/-- The lattice `N₅` is subdirectly irreducible. -/
 theorem sdi_N₅ : SubdirectlyIrreducible N₅ := by
     right
     use 2, 4
@@ -1306,7 +1336,8 @@ theorem sdi_N₅ : SubdirectlyIrreducible N₅ := by
           apply of₃₄ hR₀ <| symm H'
         · simp;tauto
 
-/-- The main theorem. -/
+/-- There exists a lattice that is subdirectly irreducible
+ but not simple, namely `N₅`. -/
 theorem exists_sdi_not_simple : ∃ l : Lattice (Fin 5),
   SubdirectlyIrreducible l ∧ ¬ Simple l := by
   use N₅
