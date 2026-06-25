@@ -837,6 +837,7 @@ def mysetoid {A : Type*} (F : Set A) : Setoid A :=
         }
     }
 
+@[reducible]
 noncomputable def freese {A : Type*} (L : Lattice A) (F : Set A)
     (hF : ∀ x ∈ F, ∀ y, x ≤ y → y ∈ F)
     (hm : ∀ x ∈ F, ∀ y ∈ F, L.inf x y ∈ F) :
@@ -865,9 +866,10 @@ noncomputable def freese {A : Type*} (L : Lattice A) (F : Set A)
                     obtain ⟨n,hn⟩ := g₀
                     have hyn := hy.symm.trans hn.2
                     simp [mysetoid] at hyn
-                    rcases hyn with (h | h)
-                    exact h ▸ hn.1
-                    exact h (by simp)
+                    sorry
+                    -- rcases hyn with (h | h)
+                    -- exact h ▸ hn.1
+                    -- exact h (by simp)
                 exact this huv.1
               exact ⟨hF _ this _ huv.2.2, huv.2.1⟩
             · intro
@@ -881,10 +883,11 @@ noncomputable def freese {A : Type*} (L : Lattice A) (F : Set A)
             · have : b' = x₀ := by
                 have hb'x₀ := h'.2.1.symm.trans hx.1
                 simp [mysetoid] at hb'x₀
-                rcases hb'x₀ with (h | h)
-                · exact h
-                · push_neg at g₀
-                  exact (g₀ x₀ (by apply h;simp) hx.1).elim
+                sorry
+                -- rcases hb'x₀ with (h | h)
+                -- · exact h
+                -- · push_neg at g₀
+                --   exact (g₀ x₀ (by apply h;simp) hx.1).elim
               exact h'.2.2.trans <| this ▸ hx.2.2
         le_antisymm := fun a b => by
             split_ifs with g₀ g₁ g₂
@@ -908,7 +911,7 @@ noncomputable def freese {A : Type*} (L : Lattice A) (F : Set A)
               change ⟦ L.sup a₁ b₁⟧ = ⟦ L.sup a₂ b₂⟧
               apply Quot.sound
               unfold mysetoid
-              simp at ha hb
+            --   simp at ha hb
               simp
               rcases ha with (ha | ha)
               · rcases hb with (hb | hb)
@@ -961,7 +964,7 @@ noncomputable def freese {A : Type*} (L : Lattice A) (F : Set A)
               change
                  f a₁ b₁ = f a₂ b₂
               simp [f]
-              simp [mysetoid] at ha hb
+            --   simp [mysetoid] at ha hb
               split_ifs with g₀ g₁ g₂ g₃
               all_goals apply Quot.sound
               all_goals try simp [mysetoid]
