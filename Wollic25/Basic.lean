@@ -359,7 +359,9 @@ theorem D₅_congr_sup_case_general {n : ℕ} {x₀ y₀ : Fin (n + 5)}
 
 lemma D_zero_max {n : ℕ} (x : Fin (n + 1)) :
     (D (n+1)).sup 0 x = 0 := by
-  simp [D, Fin.lcm]
+  unfold D
+  unfold SemilatticeSup.sup
+  simp [Fin.lcm]
 
 
 open Classical in
@@ -442,11 +444,15 @@ lemma D₅_congr_sup (x₀ x₁ y₀ y₁ : Fin 5) :
               change (D 5).sup x₀ y₀ = (D 5).sup x₁ y₀
               have g₀: (D 5).sup x₀ y₀ = 0 := by
                 fin_cases y₀; all_goals simp at H ⊢
-                · simp [D,Fin.lcm]
+                · unfold D
+                  unfold SemilatticeSup.sup
+                  simp [Fin.lcm]
                 · rcases h.1 with (h | h) <;> (subst h;decide)
               have g₁: (D 5).sup x₁ y₀ = 0 := by
                 fin_cases y₀; all_goals simp at H ⊢
-                · simp [D,Fin.lcm]
+                · unfold D
+                  unfold SemilatticeSup.sup
+                  simp [Fin.lcm]
                 · rcases h.2 with (h | h) <;> (subst h;decide)
               exact g₀.trans g₁.symm
         | inr h' =>
